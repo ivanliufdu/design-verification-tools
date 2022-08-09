@@ -1,0 +1,46 @@
+#!/bin/bash
+#File: check_many_tests
+#Author: Zhuo Liu ivanliu@marvell.com
+#use this script to submit multiple tests at once
+#check multiple tests' result
+#check_many_tests
+#check_many_tests -t "master master_gop master_cnm"
+dir_list=$(ls -d */)
+ARGS=`getopt -o t: --long tests: -n "$0" -- "$@"`
+if [ $# != 0 ];then
+	echo ARGS = [$ARGS]
+	eval set -- "${ARGS}"
+	while true
+	do
+		case "$1" in
+			-t|--tests)
+				dir_list=$2
+				shift 2
+				;;
+			--)
+   	      shift
+   	      break
+   	      ;;
+		esac
+	done
+fi
+for sub_dir in $dir_list:
+do
+	sub_dir=${sub_dir/:/}
+	sub_dir=${sub_dir/\//}
+	#sub_dir=${sub_dir/\n/}
+	cd $sub_dir
+  if [ -e run.summary ];then
+    result=`head -n 3 run.summary`
+    if [[ "$result" =~ .*Failed.* ]];then
+      echo -e "\e[1;31m$sub_dir\nFAIL\e[0m"
+    elif [[ "$result" =~ .*Passed.* ]];then
+      echo -e "\e[1;32m$sub_dir\nPASS\e[0m"
+    else
+      echo "$sub_dir nothing found"
+    fi
+  else
+    echo -e "\e[1;33m$sub_dir\nRUNNING\e[0m"
+  fi
+  cd ..
+done
