@@ -1,0 +1,48 @@
+#!/bin/bash
+#File: run_many_tests
+#Author: Zhuo Liu ivanliu@marvell.com
+#use this script to submit multiple tests at once
+#you need to prepare the directory and runtst.exe for each test
+#at the directory where all tests' directory reside, call this script
+#Example, there are 4 test directories named master master_gop master_cnm master_gop_cnm
+#Example 1: run_many_tests will run all 4 tests
+#Example 2: run_many_tests --tests="master master_gop master_cnm" --runargs="-waver" will only run 3 tests with waver
+#Example 3: run_many_tests -t "master master_gop master_cnm" -r "-waver" will run 3 tests with waver
+rm_cmd_line="rm -rf lib* nau* phoenix_incr* hawk_incr* harrier_incr* marker.tcl nts_link_dir xcelium.d sun* incr*"
+run_cmd_line_add=""
+dir_list=$(ls -d */)
+ARGS=`getopt -o t:r: --long tests:,runargs: -n "$0" -- "$@"`
+if [ $# != 0 ];then
+	echo ARGS = [$ARGS]
+	eval set -- "${ARGS}"
+	while true
+	do
+		case "$1" in
+			-t|--tests)
+				dir_list=$2
+				shift 2
+				;;
+			-r|--runargs)
+				run_cmd_line_add=$2
+				shift 2
+				;;
+			--)
+   	      shift
+   	      break
+   	      ;;
+		esac
+	done
+fi
+for sub_dir in $dir_list:
+do
+	sub_dir=${sub_dir/:/}
+	sub_dir=${sub_dir/\//}
+	run_cmd_line="mqsub -q normal -l mem_free=50g -N Test_$sub_dir runtst.exe $run_cmd_line_add"
+	pwd
+	cd $sub_dir 
+	pwd
+	$rm_cmd_line
+	$run_cmd_line
+	cd ../
+	pwd
+done
